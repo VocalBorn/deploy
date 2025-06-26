@@ -47,7 +47,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE}
     volumes:
-      - /home/improj/vocalborn-services/pgadmin:/var/lib/pgadmin
+      - ${PGADMIN_DATA_PATH}:/var/lib/pgadmin
     ports:
       - "4002:80"
     restart: unless-stopped
@@ -83,13 +83,14 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ${NGINX_CONF}:/etc/nginx/conf.d:ro
     depends_on:
       - backend
     restart: unless-stopped
   # 自動更新容器服務 
   watchtower:
     image: containrrr/watchtower
+    container_name: vocalborn-watchtower
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
