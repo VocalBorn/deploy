@@ -96,7 +96,16 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 vocalborn-backend
+    command: --interval 30 vocalborn-backend vocalborn-frontend-admin
+  # 管理員後台服務
+  frontend-admin:
+    image: sindy0514/vocalborn-frontend-admin:latest
+    container_name: vocalborn-frontend-admin
+    ports:
+      - "4005:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
 
 volumes:
   pgadmin_data:
