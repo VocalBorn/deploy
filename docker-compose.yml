@@ -1,0 +1,102 @@
+name: vocalborn
+
+services:
+  # 資料庫
+  postgres:
+    image: postgres:17
+    container_name: vocalborn-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    ports:
+      - "4004:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO 物件儲存服務
+  minio:
+    image: minio/minio:latest
+    container_name: vocalborn-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${MINIO_DATA_PATH}:/data
+    ports:
+      - "4000:9000"
+      - "4001:9002"
+    command: server /data --console-address ":9002"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vocalborn-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE}
+    volumes:
+      - /home/improj/vocalborn-services/pgadmin:/var/lib/pgadmin
+    ports:
+      - "4002:80"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  # 後端應用服務
+  backend:
+    image: sindy0514/vocalborn-backend:latest
+    container_name: vocalborn-backend
+    environment:
+      DB_ADDRESS: ${DB_ADDRESS}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      EMAIL_SERVICE_HOST: 100.92.129.6
+      EMAIL_SERVICE_PORT: 3010
+      BASE_URL: ${BASE_URL}
+    ports:
+      - "4003:8000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+  # nginx 反向代理服務
+  nginx:
+    image: nginx:latest
+    container_name: vocalborn-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+  # 自動更新容器服務 
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 vocalborn-backend
+
+volumes:
+  pgadmin_data:
+networks:
+  vocalborn-services: {}
+  "": {}
