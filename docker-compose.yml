@@ -91,6 +91,7 @@ services:
     volumes:
       - ${NGINX_CONF}:/etc/nginx/conf.d:ro
       - ${NGINX_CERTS}:/etc/nginx/certs:ro
+      - ${NGINX_WWW}:/var/www/vocalborn:ro
     depends_on:
       - backend
     restart: unless-stopped
