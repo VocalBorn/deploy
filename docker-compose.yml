@@ -86,8 +86,8 @@ services:
     image: nginx:latest
     container_name: vocalborn-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "2080:80"
+      - "2443:443"
     volumes:
       - ${NGINX_CONF}:/etc/nginx/conf.d:ro
       - ${NGINX_CERTS}:/etc/nginx/certs:ro
